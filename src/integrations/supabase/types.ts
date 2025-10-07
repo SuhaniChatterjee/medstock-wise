@@ -46,6 +46,136 @@ export type Database = {
           },
         ]
       }
+      alert_configurations: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          is_enabled: boolean | null
+          notification_channels: string[] | null
+          recipient_roles: string[] | null
+          threshold_type: string | null
+          threshold_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean | null
+          notification_channels?: string[] | null
+          recipient_roles?: string[] | null
+          threshold_type?: string | null
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean | null
+          notification_channels?: string[] | null
+          recipient_roles?: string[] | null
+          threshold_type?: string | null
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      alerts_history: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          item_id: string | null
+          message: string
+          metadata: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          item_id?: string | null
+          message: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          title: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          item_id?: string | null
+          message?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_optimization: {
+        Row: {
+          calculation_date: string
+          eoq: number | null
+          estimated_annual_cost: number | null
+          id: string
+          item_id: string | null
+          optimal_order_quantity: number | null
+          parameters: Json | null
+          reorder_point: number | null
+          safety_stock: number | null
+        }
+        Insert: {
+          calculation_date?: string
+          eoq?: number | null
+          estimated_annual_cost?: number | null
+          id?: string
+          item_id?: string | null
+          optimal_order_quantity?: number | null
+          parameters?: Json | null
+          reorder_point?: number | null
+          safety_stock?: number | null
+        }
+        Update: {
+          calculation_date?: string
+          eoq?: number | null
+          estimated_annual_cost?: number | null
+          id?: string
+          item_id?: string | null
+          optimal_order_quantity?: number | null
+          parameters?: Json | null
+          reorder_point?: number | null
+          safety_stock?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_optimization_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           avg_usage_per_day: number
@@ -90,6 +220,105 @@ export type Database = {
           vendor_name?: string | null
         }
         Relationships: []
+      }
+      model_registry: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dataset_summary: Json | null
+          feature_importance: Json | null
+          hyperparameters: Json | null
+          id: string
+          is_active: boolean | null
+          mae: number
+          model_type: string
+          model_version: string
+          r2_score: number | null
+          rmse: number | null
+          training_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dataset_summary?: Json | null
+          feature_importance?: Json | null
+          hyperparameters?: Json | null
+          id?: string
+          is_active?: boolean | null
+          mae: number
+          model_type?: string
+          model_version: string
+          r2_score?: number | null
+          rmse?: number | null
+          training_date?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dataset_summary?: Json | null
+          feature_importance?: Json | null
+          hyperparameters?: Json | null
+          id?: string
+          is_active?: boolean | null
+          mae?: number
+          model_type?: string
+          model_version?: string
+          r2_score?: number | null
+          rmse?: number | null
+          training_date?: string
+        }
+        Relationships: []
+      }
+      prediction_history: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          created_by: string | null
+          feature_contributions: Json | null
+          feature_values: Json
+          id: string
+          item_id: string | null
+          model_version_id: string | null
+          predicted_demand: number
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          feature_contributions?: Json | null
+          feature_values: Json
+          id?: string
+          item_id?: string | null
+          model_version_id?: string | null
+          predicted_demand: number
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          feature_contributions?: Json | null
+          feature_values?: Json
+          id?: string
+          item_id?: string | null
+          model_version_id?: string | null
+          predicted_demand?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prediction_history_model_version_id_fkey"
+            columns: ["model_version_id"]
+            isOneToOne: false
+            referencedRelation: "model_registry"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       predictions: {
         Row: {
