@@ -43,6 +43,8 @@ export function Layout({ children }: LayoutProps) {
     { name: "Dashboard", href: "/", icon: BarChart3 },
     { name: "Inventory", href: "/inventory", icon: Package },
     { name: "Predictions", href: "/predictions", icon: TrendingUp },
+    { name: "Alerts", href: "/alerts", icon: Activity },
+    { name: "Cost Optimization", href: "/cost-optimization", icon: Activity },
     ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Users }] : []),
   ];
 
