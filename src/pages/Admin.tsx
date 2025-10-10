@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Shield } from "lucide-react";
+import { Users, Shield, Database, Download } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -36,6 +36,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -101,6 +102,28 @@ export default function Admin() {
     }
   };
 
+  const handleSeedData = async () => {
+    setSeeding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-sample-data");
+      
+      if (error) throw error;
+
+      toast({
+        title: "Data Seeded Successfully",
+        description: `Added ${data.stats.inventory_items} items, ${data.stats.predictions} predictions, and ${data.stats.alerts} alerts`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Seeding Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -133,6 +156,44 @@ export default function Admin() {
           Manage users and system settings
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Data Management</CardTitle>
+          <CardDescription>
+            Seed the database with sample data from the PBL Project
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 border rounded-lg space-y-3">
+            <div className="flex items-start gap-3">
+              <Database className="h-5 w-5 text-primary mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold">Load Sample Dataset</h4>
+                <p className="text-sm text-muted-foreground">
+                  Populate the database with inventory items, predictions, and model metrics from the PBL Project PDF.
+                  Includes 8 inventory items, model v1.0.0 with MAE: 157.17, and sample predictions.
+                </p>
+              </div>
+            </div>
+            <Button onClick={handleSeedData} disabled={seeding} className="w-full gap-2">
+              <Download className="h-4 w-4" />
+              {seeding ? "Seeding Data..." : "Seed Sample Data"}
+            </Button>
+          </div>
+
+          <div className="p-4 bg-muted rounded-lg">
+            <h4 className="font-semibold mb-2">What gets populated:</h4>
+            <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+              <li>8 Inventory Items (Ventilator, Surgical Mask, IV Drip, etc.)</li>
+              <li>Model Registry v1.0.0 (GradientBoosting, MAE: 157.17, RMSE: 215.72)</li>
+              <li>Prediction History with feature contributions</li>
+              <li>Dashboard Predictions (Estimated Demand, Shortfall, Replenishment Needs)</li>
+              <li>Low Stock Alerts for items below minimum threshold</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
