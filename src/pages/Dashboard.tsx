@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, TrendingDown, AlertTriangle, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface InventoryStats {
   totalItems: number;
@@ -13,6 +14,7 @@ interface InventoryStats {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [stats, setStats] = useState<InventoryStats>({
     totalItems: 0,
     lowStockItems: 0,
@@ -20,10 +22,48 @@ export default function Dashboard() {
     criticalItems: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
-    fetchStats();
+    initializeDashboard();
   }, []);
+
+  const initializeDashboard = async () => {
+    await fetchStats();
+    
+    // Auto-seed if database is empty
+    const { data: items } = await supabase.from("inventory_items").select("id");
+    if (items && items.length === 0) {
+      await seedDatabase();
+    }
+  };
+
+  const seedDatabase = async () => {
+    setSeeding(true);
+    try {
+      const { error } = await supabase.functions.invoke("seed-sample-data");
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Database Initialized",
+        description: "Sample data has been loaded successfully.",
+      });
+      
+      // Refresh stats after seeding
+      await fetchStats();
+    } catch (error) {
+      console.error("Seeding error:", error);
+      toast({
+        title: "Seeding Failed",
+        description: "Could not load sample data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSeeding(false);
+      setLoading(false);
+    }
+  };
 
   const fetchStats = async () => {
     const { data: items, error } = await supabase
@@ -75,10 +115,11 @@ export default function Dashboard() {
     },
   ];
 
-  if (loading) {
+  if (loading || seeding) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        {seeding && <p className="text-muted-foreground">Initializing database with sample data...</p>}
       </div>
     );
   }
