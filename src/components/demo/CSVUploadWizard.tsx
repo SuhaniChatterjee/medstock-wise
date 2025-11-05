@@ -7,6 +7,7 @@ import { useDropzone } from "react-dropzone";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 const REQUIRED_COLUMNS = [
   "item_name",
@@ -19,7 +20,11 @@ const REQUIRED_COLUMNS = [
   "unit_cost"
 ];
 
-export function CSVUploadWizard() {
+interface CSVUploadWizardProps {
+  onPredictionsComplete?: (results: any[]) => void;
+}
+
+export function CSVUploadWizard({ onPredictionsComplete }: CSVUploadWizardProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -89,23 +94,84 @@ export function CSVUploadWizard() {
     setUploadProgress(10);
 
     try {
-      // Simulate processing
-      for (let i = 10; i <= 90; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setUploadProgress(i);
+      const text = await file.text();
+      const rows = text.split('\n').filter(row => row.trim()).slice(1); // Skip header
+      
+      const predictions = [];
+      const total = rows.length;
+      
+      for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].split(',').map(c => c.trim());
+        const headers = validation.headers;
+        
+        // Map row data to required fields
+        const rowData: any = {};
+        headers.forEach((header: string, idx: number) => {
+          const normalizedHeader = header.toLowerCase().replace(/[_\s]/g, '');
+          REQUIRED_COLUMNS.forEach(reqCol => {
+            const normalizedReqCol = reqCol.replace(/_/g, '');
+            if (normalizedHeader.includes(normalizedReqCol)) {
+              rowData[reqCol] = cells[idx];
+            }
+          });
+        });
+
+        // Call prediction endpoint
+        const { data, error } = await supabase.functions.invoke('run-predictions', {
+          body: {
+            run_all: false,
+            single_prediction: {
+              item_name: rowData.item_name,
+              item_type: rowData.item_type,
+              current_stock: parseInt(rowData.current_stock),
+              min_required: parseInt(rowData.min_required),
+              max_capacity: parseInt(rowData.max_capacity),
+              avg_usage_per_day: parseInt(rowData.avg_usage_per_day),
+              restock_lead_time: parseInt(rowData.restock_lead_time),
+              unit_cost: parseFloat(rowData.unit_cost),
+              vendor_name: rowData.vendor_name || ''
+            }
+          }
+        });
+
+        if (!error && data) {
+          predictions.push({
+            item_id: `csv-${i}`,
+            predicted_demand: data.estimated_demand,
+            confidence_score: 0.85,
+            feature_values: rowData,
+            feature_contributions: data.feature_contributions,
+            inventory_items: {
+              item_name: rowData.item_name,
+              item_type: rowData.item_type
+            }
+          });
+        }
+
+        setUploadProgress(10 + Math.floor((i + 1) / total * 80));
       }
 
+      onPredictionsComplete?.(predictions);
+      
       toast({
         title: "Processing Complete",
-        description: `Successfully processed ${validation.totalRows} rows`,
+        description: `Successfully processed ${predictions.length} predictions`,
       });
       setUploadProgress(100);
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        setUploadProgress(0);
+        setFile(null);
+        setValidation(null);
+      }, 2000);
     } catch (error: any) {
       toast({
         title: "Processing Failed",
         description: error.message,
         variant: "destructive",
       });
+      setUploadProgress(0);
     }
   };
 

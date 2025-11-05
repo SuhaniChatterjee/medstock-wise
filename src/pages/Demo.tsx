@@ -17,6 +17,7 @@ import { PredictionChart } from "@/components/demo/PredictionChart";
 export default function Demo() {
   const [modelInfo, setModelInfo] = useState<any>(null);
   const [sampleData, setSampleData] = useState<any[]>([]);
+  const [batchResults, setBatchResults] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,9 +30,10 @@ export default function Demo() {
       .from("model_registry")
       .select("*")
       .eq("is_active", true)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1);
     
-    if (data) setModelInfo(data);
+    if (data && data.length > 0) setModelInfo(data[0]);
   };
 
   const fetchSampleData = async () => {
@@ -138,7 +140,7 @@ N95 Masks,PPE,200,100,500,25,10,3.00,SafetyFirst Ltd`;
         </TabsContent>
 
         <TabsContent value="upload" className="space-y-4">
-          <CSVUploadWizard />
+          <CSVUploadWizard onPredictionsComplete={setBatchResults} />
         </TabsContent>
 
         <TabsContent value="results" className="space-y-4">
@@ -150,10 +152,23 @@ N95 Masks,PPE,200,100,500,25,10,3.00,SafetyFirst Ltd`;
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <Upload className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Upload a CSV file to see batch prediction results here</p>
-              </div>
+              {batchResults.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      {batchResults.length} predictions generated
+                    </Badge>
+                  </div>
+                  <DemoDataTable data={batchResults} />
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Upload className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Upload a CSV file to see batch prediction results here</p>
+                  <p className="text-sm mt-2">Go to the "Upload CSV" tab to get started</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
