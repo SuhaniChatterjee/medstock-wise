@@ -9,6 +9,17 @@ const corsHeaders = {
 interface PredictionInput {
   item_id?: string;
   run_all?: boolean;
+  single_prediction?: {
+    item_name: string;
+    item_type: string;
+    current_stock: number;
+    min_required: number;
+    max_capacity: number;
+    avg_usage_per_day: number;
+    restock_lead_time: number;
+    unit_cost: number;
+    vendor_name?: string;
+  };
 }
 
 interface InventoryItem {
@@ -77,17 +88,40 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { item_id, run_all }: PredictionInput = await req.json();
+    const { item_id, run_all, single_prediction }: PredictionInput = await req.json();
 
-    // Get active model version
-    const { data: activeModel, error: modelError } = await supabase
+    // Get active model version (get the most recent one if multiple exist)
+    const { data: activeModels, error: modelError } = await supabase
       .from('model_registry')
       .select('*')
       .eq('is_active', true)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (modelError || !activeModel) {
+    if (modelError || !activeModels || activeModels.length === 0) {
       throw new Error('No active model found');
+    }
+
+    const activeModel = activeModels[0];
+
+    // Handle single prediction (demo mode - no DB persistence)
+    if (single_prediction) {
+      const prediction = predictDemand({
+        id: 'demo',
+        ...single_prediction,
+      } as InventoryItem);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          ...prediction,
+          model_version: activeModel.model_version,
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
     }
 
     // Get inventory items
